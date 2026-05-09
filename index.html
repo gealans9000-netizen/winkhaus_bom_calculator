@@ -976,6 +976,10 @@
     <button class="tab dashed " data-tab="master">
       <div class="tab-icon-row"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> 자재 마스터</div>
       <div class="tab-sub" style="margin-top:4px;color:var(--muted)">전체 자재 + 단가</div>
+    </button>
+   <button class="tab dashed " data-tab="order">
+      <div class="tab-icon-row"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> 자재 발주서</div>
+      <div class="tab-sub" style="margin-top:4px;color:var(--muted)">엑셀형 발주 리스트</div>
     </button></div>
 </div>
 
@@ -2308,70 +2312,233 @@ render();
 
 
 <script src="https://gealans9000-manager.vercel.app/bom-autofill.js"></script>
+ 
 
-<!-- ========== 발주서 기능 시작 ========== -->
-<!-- 이 코드 전체를 </body> 바로 위에 붙여넣으세요 -->
+<!-- ========== 자재 발주서 탭 기능 시작 ========== -->
 <style>
-  /* 체크박스 */
-  .order-checkbox {
-    position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 22px;
-    height: 22px;
-    cursor: pointer;
-    z-index: 10;
-    accent-color: #d97757;
+  /* 발주서 탭 컨테이너 */
+  .order-page {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    border: 1px solid var(--border-soft);
+    box-shadow: var(--shadow-sm);
   }
-  .master-card { position: relative; }
-  .master-card.order-selected {
-    border-color: #d97757 !important;
-    box-shadow: 0 0 0 2px rgba(217,119,87,0.2) !important;
-  }
-  
-  /* 플로팅 복사 버튼 */
-  .order-float-btn {
-    position: fixed;
-    bottom: 32px;
-    right: 32px;
-    padding: 14px 22px;
-    background: #1a1612;
-    color: white;
-    border-radius: 50px;
-    font-weight: 700;
-    font-size: 14px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-    z-index: 1000;
-    transition: all 0.2s;
-    display: none;
+  .order-page-header {
+    display: flex;
     align-items: center;
-    gap: 10px;
-    border: none;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .order-page-title {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ink);
+  }
+  .order-page-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .order-page-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .order-action-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
+    border: 1px solid var(--border);
+    background: white;
+    color: var(--ink-2);
+    transition: all 0.15s;
     font-family: inherit;
   }
-  .order-float-btn.visible { display: flex; }
-  .order-float-btn:hover {
-    background: #d97757;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(217,119,87,0.4);
+  .order-action-btn:hover { background: var(--bg-2); }
+  .order-action-btn.danger {
+    color: var(--accent-strong);
+    border-color: rgba(217,119,87,0.3);
   }
-  .order-float-btn .count {
-    background: #d97757;
-    color: white;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 800;
-    min-width: 24px;
-    text-align: center;
+  .order-action-btn.danger:hover { background: var(--accent-soft); }
+  
+  /* 발주처/현장명 입력 */
+  .order-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
   }
-  .order-float-btn:hover .count {
+  .order-meta-field label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .order-meta-field input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(26,22,18,0.15);
+    font-size: 13px;
     background: white;
-    color: #d97757;
+    font-family: inherit;
   }
   
-  /* 모달 */
+  /* 검색바 */
+  .order-search-bar {
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .order-search-bar input {
+    width: 100%;
+    padding: 10px 14px 10px 36px;
+    border-radius: 6px;
+    border: 1px solid rgba(26,22,18,0.15);
+    font-size: 13px;
+    background: white;
+    font-family: inherit;
+  }
+  .order-search-bar::before {
+    content: "🔍";
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+  }
+  
+  /* 테이블 */
+  .order-table-wrap {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    max-height: 600px;
+    overflow-y: auto;
+  }
+  .order-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .order-table thead {
+    background: var(--bg-2);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .order-table th {
+    padding: 10px 8px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--ink);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .order-table th.col-code { width: 110px; }
+  .order-table th.col-spec { }
+  .order-table th.col-name { width: 220px; }
+  .order-table th.col-qty { width: 80px; text-align: center; }
+  .order-table th.col-check { width: 60px; text-align: center; }
+  
+  .order-table td {
+    padding: 8px;
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: middle;
+  }
+  .order-table tr:hover td { background: rgba(217,119,87,0.04); }
+  .order-table tr.selected td { background: rgba(217,119,87,0.08); }
+  
+  .order-table .td-code {
+    font-family: 'SF Mono', Monaco, Consolas, monospace;
+    font-weight: 600;
+    color: var(--ink);
+    font-size: 11px;
+  }
+  .order-table .td-spec {
+    color: var(--ink-2);
+    font-size: 11px;
+  }
+  .order-table .td-name {
+    color: var(--ink);
+    font-size: 12px;
+  }
+  .order-table .td-qty {
+    text-align: center;
+  }
+  .order-table .td-check {
+    text-align: center;
+  }
+  .order-qty-input {
+    width: 60px;
+    padding: 4px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(26,22,18,0.15);
+    font-size: 12px;
+    text-align: center;
+    background: white;
+    font-family: inherit;
+  }
+  .order-qty-input:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .order-check-input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--accent);
+  }
+  
+  /* 하단 액션 영역 */
+  .order-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: var(--bg-2);
+    border-radius: 6px;
+  }
+  .order-stats {
+    font-size: 13px;
+    color: var(--ink-2);
+  }
+  .order-stats strong {
+    color: var(--accent);
+    font-weight: 800;
+    font-size: 16px;
+  }
+  .order-copy-btn {
+    padding: 12px 24px;
+    border-radius: 6px;
+    background: var(--ink);
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .order-copy-btn:hover:not(:disabled) {
+    background: var(--accent);
+  }
+  .order-copy-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .order-copy-btn.copied { background: #4caf50; }
+  
+  /* 결과 모달 (재사용) */
   .order-modal-overlay {
     position: fixed;
     inset: 0;
@@ -2388,7 +2555,7 @@ render();
     background: white;
     border-radius: 12px;
     padding: 28px;
-    max-width: 600px;
+    max-width: 640px;
     width: 100%;
     max-height: 85vh;
     display: flex;
@@ -2396,38 +2563,35 @@ render();
     box-shadow: 0 24px 48px rgba(0,0,0,0.32);
   }
   .order-modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     margin-bottom: 16px;
     padding-bottom: 16px;
-    border-bottom: 1px solid rgba(26,22,18,0.08);
+    border-bottom: 1px solid var(--border-soft);
   }
   .order-modal-title {
     font-size: 18px;
     font-weight: 800;
-    color: #1a1612;
+    color: var(--ink);
   }
   .order-modal-sub {
     font-size: 12px;
-    color: #7a6d5f;
-    margin-top: 2px;
+    color: var(--muted);
+    margin-top: 4px;
   }
-  .order-textarea {
+  .order-modal-textarea {
     width: 100%;
     flex: 1;
-    min-height: 320px;
+    min-height: 360px;
     padding: 16px;
-    border: 1px solid rgba(26,22,18,0.15);
+    border: 1px solid var(--border);
     border-radius: 8px;
     font-family: 'SF Mono', Monaco, Consolas, monospace;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.7;
     resize: vertical;
-    background: #faf6f0;
-    color: #1a1612;
+    background: var(--bg);
+    color: var(--ink);
   }
-  .order-textarea:focus { outline: none; border-color: #d97757; }
+  .order-modal-textarea:focus { outline: none; border-color: var(--accent); }
   .order-modal-actions {
     display: flex;
     gap: 10px;
@@ -2441,49 +2605,34 @@ render();
     font-size: 13px;
     border: none;
     cursor: pointer;
-    transition: all 0.15s;
     font-family: inherit;
+    transition: all 0.15s;
   }
-  .order-btn-clear {
-    background: white;
-    color: #a14a30;
-    border: 1px solid rgba(217,119,87,0.3) !important;
+  .order-modal-cancel {
+    background: var(--bg-2);
+    color: var(--ink);
   }
-  .order-btn-clear:hover { background: #fff5ef; }
-  .order-btn-cancel {
-    background: #f5f0e8;
-    color: #1a1612;
-  }
-  .order-btn-cancel:hover { background: #e8e0d2; }
-  .order-btn-copy {
-    background: #1a1612;
+  .order-modal-cancel:hover { background: #e8e0d2; }
+  .order-modal-copy {
+    background: var(--ink);
     color: white;
     min-width: 110px;
   }
-  .order-btn-copy:hover { background: #d97757; }
-  .order-btn-copy.copied { background: #4caf50; }
+  .order-modal-copy:hover { background: var(--accent); }
+  .order-modal-copy.copied { background: #4caf50; }
 </style>
 
-<!-- 플로팅 버튼 -->
-<button class="order-float-btn" id="orderFloatBtn" type="button">
-  📋 선택 자재 복사하기
-  <span class="count" id="orderCount">0</span>
-</button>
-
-<!-- 발주서 미리보기 모달 -->
+<!-- 발주서 모달 (텍스트 미리보기) -->
 <div class="order-modal-overlay" id="orderModalOverlay">
   <div class="order-modal">
     <div class="order-modal-header">
-      <div>
-        <div class="order-modal-title">📋 발주 자재 리스트</div>
-        <div class="order-modal-sub">아래 텍스트를 복사하여 카톡에 붙여넣으세요</div>
-      </div>
+      <div class="order-modal-title">📋 발주서 텍스트</div>
+      <div class="order-modal-sub">아래 내용을 복사하여 카톡으로 보내세요</div>
     </div>
-    <textarea class="order-textarea" id="orderTextarea" readonly></textarea>
+    <textarea class="order-modal-textarea" id="orderModalTextarea" readonly></textarea>
     <div class="order-modal-actions">
-      <button class="order-btn-clear" id="orderClearBtn" type="button">전체 해제</button>
-      <button class="order-btn-cancel" id="orderCancelBtn" type="button">닫기</button>
-      <button class="order-btn-copy" id="orderCopyBtn" type="button">📋 복사하기</button>
+      <button class="order-modal-cancel" id="orderModalCancelBtn" type="button">닫기</button>
+      <button class="order-modal-copy" id="orderModalCopyBtn" type="button">📋 복사하기</button>
     </div>
   </div>
 </div>
@@ -2492,87 +2641,286 @@ render();
 (function() {
   'use strict';
   
-  // 선택된 자재 저장 (code → {code, nameKo, cat})
-  const selectedItems = new Map();
+  // ========== 자재 데이터 ==========
+  // MASTER_DATA가 이미 페이지에 로드되어 있다고 가정하고 그것을 사용
+  // 만약 없으면 빈 배열로 시작
+  function getMasterData() {
+    if (typeof MASTER_DATA !== 'undefined' && Array.isArray(MASTER_DATA)) {
+      return MASTER_DATA;
+    }
+    if (typeof window !== 'undefined' && Array.isArray(window.MASTER_DATA)) {
+      return window.MASTER_DATA;
+    }
+    return [];
+  }
   
-  // 카테고리 표시 순서 (자주 쓰는 순)
-  const CATEGORY_ORDER = [
-    'TS', '100KG힌지', '130KG힌지', '히든', 
-    'T/T쉐어', '턴힌지', '틸트힌지/쉐어',
-    '코너드라이브', '탑로드', '연결재', '연결마감재',
-    '핸들', '핸들기어', '힌지커버', 'KEEP류', '도어', '기타 자재'
-  ];
+  // ========== 상태 관리 ==========
+  // localStorage에 임시 저장 (페이지 새로고침해도 유지)
+  const STORAGE_KEY = 'winkhaus_order_state_v1';
   
-  // 자재 마스터 카드에 체크박스 추가 (이미 있으면 스킵)
-  function addCheckboxesToCards() {
-    const cards = document.querySelectorAll('.master-card');
-    if (cards.length === 0) return;
-    
-    cards.forEach(card => {
-      if (card.querySelector('.order-checkbox')) return; // 중복 방지
-      
-      const codeEl = card.querySelector('.master-card-code');
-      if (!codeEl) return;
-      
-      const code = codeEl.textContent.trim();
-      const nameKoEl = card.querySelector('.master-card-name-ko');
-      const nameEnEl = card.querySelector('.master-card-name-en');
-      const nameKo = nameKoEl ? nameKoEl.textContent.trim() : '';
-      const nameEn = nameEnEl ? nameEnEl.textContent.trim() : '';
-      const displayName = nameKo || nameEn || '(이름 없음)';
-      
-      // 카테고리: 가장 가까운 master-cat-group의 헤더에서 추출
-      const catGroup = card.closest('.master-cat-group');
-      let category = '기타';
-      if (catGroup) {
-        const catHeader = catGroup.querySelector('.master-cat-header-name');
-        if (catHeader) category = catHeader.textContent.trim();
-      }
-      
-      // 체크박스 생성
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.className = 'order-checkbox';
-      checkbox.title = '발주 리스트에 추가';
-      checkbox.dataset.code = code;
-      
-      // 이미 선택된 항목이면 체크 상태 유지
-      if (selectedItems.has(code)) {
-        checkbox.checked = true;
-        card.classList.add('order-selected');
-      }
-      
-      // 클릭 이벤트가 부모(카드 클릭=라이트박스)로 전파되지 않도록
-      checkbox.addEventListener('click', (e) => {
-        e.stopPropagation();
-      });
-      
-      checkbox.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          selectedItems.set(code, { code, nameKo: displayName, cat: category });
-          card.classList.add('order-selected');
-        } else {
-          selectedItems.delete(code);
-          card.classList.remove('order-selected');
+  let orderState = {
+    items: {}, // { code: { qty: 5, checked: true } }
+    meta: { vendor: '', site: '' },
+    search: ''
+  };
+  
+  function loadState() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object') {
+          orderState = Object.assign(orderState, parsed);
         }
-        updateFloatButton();
-      });
+      }
+    } catch (e) {}
+  }
+  
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(orderState));
+    } catch (e) {}
+  }
+  
+  // ========== 렌더링 ==========
+  function renderOrderPage() {
+    const data = getMasterData();
+    if (data.length === 0) {
+      return `
+        <div class="order-page">
+          <div class="order-page-header">
+            <div>
+              <div class="order-page-title">📋 자재 발주서</div>
+              <div class="order-page-sub">자재 데이터를 불러오는 중...</div>
+            </div>
+          </div>
+          <div style="padding:48px;text-align:center;color:var(--muted)">
+            자재 마스터 탭을 한 번 클릭한 후 다시 시도해주세요.
+          </div>
+        </div>
+      `;
+    }
+    
+    // 코드 기준 정렬
+    const sorted = data.slice().sort((a, b) => {
+      return String(a.code).localeCompare(String(b.code), 'ko', {numeric: true});
+    });
+    
+    // 검색 필터
+    const search = (orderState.search || '').toLowerCase().trim();
+    const filtered = search ? sorted.filter(item => {
+      return String(item.code).toLowerCase().includes(search) ||
+             String(item.name_en || '').toLowerCase().includes(search) ||
+             String(item.name_ko || '').toLowerCase().includes(search);
+    }) : sorted;
+    
+    // 통계
+    let selectedCount = 0;
+    let totalQty = 0;
+    Object.keys(orderState.items).forEach(code => {
+      const item = orderState.items[code];
+      if (item && item.checked) {
+        selectedCount++;
+        totalQty += parseInt(item.qty) || 0;
+      }
+    });
+    
+    // 행 렌더링
+    const rows = filtered.map(item => {
+      const state = orderState.items[item.code] || {};
+      const qty = state.qty || '';
+      const checked = state.checked || false;
       
-      card.appendChild(checkbox);
+      // 품목명[규격] = 영문명, 품목명 = 한글명
+      const spec = escapeHtml(item.name_en || '');
+      const nameKo = escapeHtml(item.name_ko || '');
+      const code = escapeHtml(item.code);
+      
+      return `
+        <tr class="${checked ? 'selected' : ''}" data-code="${code}">
+          <td class="td-code">${code}</td>
+          <td class="td-spec">${spec}</td>
+          <td class="td-name">${nameKo}</td>
+          <td class="td-qty">
+            <input type="number" class="order-qty-input" data-action="qty" data-code="${code}" 
+                   value="${qty}" min="1" placeholder="0">
+          </td>
+          <td class="td-check">
+            <input type="checkbox" class="order-check-input" data-action="check" data-code="${code}"
+                   ${checked ? 'checked' : ''}>
+          </td>
+        </tr>
+      `;
+    }).join('');
+    
+    return `
+      <div class="order-page">
+        <div class="order-page-header">
+          <div>
+            <div class="order-page-title">📋 자재 발주서</div>
+            <div class="order-page-sub">필요한 자재의 수량을 입력하고 체크하세요. 입력값은 자동 저장됩니다.</div>
+          </div>
+          <div class="order-page-actions">
+            <button class="order-action-btn danger" data-action="clear-all">전체 초기화</button>
+          </div>
+        </div>
+        
+        <div class="order-meta">
+          <div class="order-meta-field">
+            <label>발주처</label>
+            <input type="text" data-action="meta-vendor" value="${escapeHtml(orderState.meta.vendor || '')}" placeholder="예: ㅇㅇ건설">
+          </div>
+          <div class="order-meta-field">
+            <label>현장명</label>
+            <input type="text" data-action="meta-site" value="${escapeHtml(orderState.meta.site || '')}" placeholder="예: ㅇㅇ아파트 101동">
+          </div>
+        </div>
+        
+        <div class="order-search-bar">
+          <input type="text" data-action="search" value="${escapeHtml(orderState.search || '')}" 
+                 placeholder="품목코드 또는 품명으로 검색...">
+        </div>
+        
+        <div class="order-table-wrap">
+          <table class="order-table">
+            <thead>
+              <tr>
+                <th class="col-code">품목코드</th>
+                <th class="col-spec">품목명[규격]</th>
+                <th class="col-name">품목명</th>
+                <th class="col-qty">수량</th>
+                <th class="col-check">체크</th>
+              </tr>
+            </thead>
+            <tbody id="orderTbody">
+              ${rows || '<tr><td colspan="5" style="padding:40px;text-align:center;color:var(--muted)">검색 결과 없음</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="order-footer">
+          <div class="order-stats">
+            선택: <strong>${selectedCount}</strong>개 품목 · 합계: <strong>${totalQty}</strong> EA
+          </div>
+          <button class="order-copy-btn" data-action="generate" ${selectedCount === 0 ? 'disabled' : ''}>
+            📋 발주서 만들기
+          </button>
+        </div>
+      </div>
+    `;
+  }
+  
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[c]);
+  }
+  
+  // ========== 이벤트 핸들링 ==========
+  function attachEvents() {
+    const container = document.getElementById('bodyContent');
+    if (!container) return;
+    
+    // 단일 위임 이벤트
+    container.addEventListener('input', (e) => {
+      const target = e.target;
+      const action = target.dataset.action;
+      
+      if (action === 'qty') {
+        const code = target.dataset.code;
+        if (!orderState.items[code]) orderState.items[code] = {};
+        orderState.items[code].qty = target.value;
+        saveState();
+        updateStats();
+      } else if (action === 'meta-vendor') {
+        orderState.meta.vendor = target.value;
+        saveState();
+      } else if (action === 'meta-site') {
+        orderState.meta.site = target.value;
+        saveState();
+      } else if (action === 'search') {
+        orderState.search = target.value;
+        saveState();
+        // 검색은 디바운스 (200ms)
+        clearTimeout(window._orderSearchTimer);
+        window._orderSearchTimer = setTimeout(() => {
+          renderIfActive();
+        }, 200);
+      }
+    });
+    
+    container.addEventListener('change', (e) => {
+      const target = e.target;
+      const action = target.dataset.action;
+      
+      if (action === 'check') {
+        const code = target.dataset.code;
+        if (!orderState.items[code]) orderState.items[code] = {};
+        orderState.items[code].checked = target.checked;
+        // 체크 시 수량이 비어있으면 1로 자동 설정
+        if (target.checked && (!orderState.items[code].qty || parseInt(orderState.items[code].qty) <= 0)) {
+          orderState.items[code].qty = '1';
+          const qtyInput = container.querySelector(`input[data-action="qty"][data-code="${code}"]`);
+          if (qtyInput) qtyInput.value = '1';
+        }
+        saveState();
+        // 행 하이라이트
+        const tr = target.closest('tr');
+        if (tr) tr.classList.toggle('selected', target.checked);
+        updateStats();
+      }
+    });
+    
+    container.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action]');
+      if (!target) return;
+      const action = target.dataset.action;
+      
+      if (action === 'clear-all') {
+        if (!confirm('모든 입력 내용을 삭제하시겠습니까?')) return;
+        orderState = { items: {}, meta: { vendor: '', site: '' }, search: '' };
+        saveState();
+        renderIfActive();
+      } else if (action === 'generate') {
+        showOrderModal();
+      }
     });
   }
   
-  // 플로팅 버튼 갱신
-  function updateFloatButton() {
-    const btn = document.getElementById('orderFloatBtn');
-    const count = document.getElementById('orderCount');
-    if (!btn || !count) return;
+  function updateStats() {
+    let selectedCount = 0;
+    let totalQty = 0;
+    Object.keys(orderState.items).forEach(code => {
+      const item = orderState.items[code];
+      if (item && item.checked) {
+        selectedCount++;
+        totalQty += parseInt(item.qty) || 0;
+      }
+    });
     
-    count.textContent = selectedItems.size;
-    btn.classList.toggle('visible', selectedItems.size > 0);
+    const stats = document.querySelector('.order-stats');
+    if (stats) {
+      stats.innerHTML = `선택: <strong>${selectedCount}</strong>개 품목 · 합계: <strong>${totalQty}</strong> EA`;
+    }
+    const btn = document.querySelector('.order-copy-btn');
+    if (btn) btn.disabled = selectedCount === 0;
   }
   
-  // 발주서 텍스트 생성
+  function renderIfActive() {
+    const activeTab = document.querySelector('.tab.active');
+    if (activeTab && activeTab.dataset.tab === 'order') {
+      renderToBody();
+    }
+  }
+  
+  function renderToBody() {
+    const container = document.getElementById('bodyContent');
+    if (container) {
+      container.innerHTML = renderOrderPage();
+    }
+  }
+  
+  // ========== 발주서 텍스트 생성 ==========
   function generateOrderText() {
     const today = new Date();
     const yyyy = today.getFullYear();
@@ -2580,91 +2928,83 @@ render();
     const dd = String(today.getDate()).padStart(2, '0');
     const dateStr = `${yyyy}-${mm}-${dd}`;
     
-    // 카테고리별 그룹화
-    const grouped = {};
-    selectedItems.forEach(item => {
-      if (!grouped[item.cat]) grouped[item.cat] = [];
-      grouped[item.cat].push(item);
+    const data = getMasterData();
+    const dataMap = {};
+    data.forEach(item => { dataMap[item.code] = item; });
+    
+    // 선택된 자재 목록
+    const selected = [];
+    Object.keys(orderState.items).forEach(code => {
+      const state = orderState.items[code];
+      if (state && state.checked && parseInt(state.qty) > 0) {
+        const master = dataMap[code];
+        if (master) {
+          selected.push({
+            code: code,
+            name_ko: master.name_ko || '',
+            name_en: master.name_en || '',
+            qty: parseInt(state.qty)
+          });
+        }
+      }
     });
     
-    // 카테고리 정렬
-    const sortedCats = Object.keys(grouped).sort((a, b) => {
-      const ai = CATEGORY_ORDER.indexOf(a);
-      const bi = CATEGORY_ORDER.indexOf(b);
-      if (ai === -1 && bi === -1) return a.localeCompare(b);
-      if (ai === -1) return 1;
-      if (bi === -1) return -1;
-      return ai - bi;
-    });
+    // 코드 기준 정렬
+    selected.sort((a, b) => String(a.code).localeCompare(String(b.code), 'ko', {numeric: true}));
+    
+    const totalQty = selected.reduce((sum, item) => sum + item.qty, 0);
     
     // 텍스트 작성
-    let text = `📋 Winkhaus 발주 자재 리스트\n`;
+    let text = `📋 Winkhaus 자재 발주서\n`;
     text += `📅 ${dateStr}\n`;
-    text += `━━━━━━━━━━━━━━━━━━\n\n`;
+    if (orderState.meta.vendor) text += `🏢 발주처: ${orderState.meta.vendor}\n`;
+    if (orderState.meta.site) text += `📍 현장명: ${orderState.meta.site}\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n\n`;
     
-    let totalNum = 0;
-    sortedCats.forEach(cat => {
-      text += `[${cat}]\n`;
-      grouped[cat].forEach(item => {
-        totalNum++;
-        text += `${totalNum}. ${item.code} - ${item.nameKo}\n`;
-      });
-      text += `\n`;
+    // 자재 목록
+    selected.forEach((item, idx) => {
+      text += `${idx + 1}. ${item.code}\n`;
+      text += `   ${item.name_ko}\n`;
+      text += `   수량: ${item.qty} EA\n\n`;
     });
     
-    text += `━━━━━━━━━━━━━━━━━━\n`;
-    text += `총 ${selectedItems.size}개 품목`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `총 ${selected.length}개 품목 / ${totalQty} EA`;
+    
     return text;
   }
   
-  // 모달 열기
-  document.getElementById('orderFloatBtn').addEventListener('click', () => {
-    if (selectedItems.size === 0) return;
-    document.getElementById('orderTextarea').value = generateOrderText();
+  // ========== 모달 ==========
+  function showOrderModal() {
+    const text = generateOrderText();
+    document.getElementById('orderModalTextarea').value = text;
     document.getElementById('orderModalOverlay').classList.add('open');
-  });
+  }
   
-  // 모달 닫기
-  document.getElementById('orderCancelBtn').addEventListener('click', () => {
+  document.getElementById('orderModalCancelBtn').addEventListener('click', () => {
     document.getElementById('orderModalOverlay').classList.remove('open');
   });
   
-  // 오버레이 클릭으로 닫기
   document.getElementById('orderModalOverlay').addEventListener('click', (e) => {
     if (e.target.id === 'orderModalOverlay') {
       e.currentTarget.classList.remove('open');
     }
   });
   
-  // 전체 해제
-  document.getElementById('orderClearBtn').addEventListener('click', () => {
-    if (!confirm('선택한 자재를 모두 해제하시겠습니까?')) return;
-    
-    selectedItems.clear();
-    document.querySelectorAll('.order-checkbox').forEach(cb => cb.checked = false);
-    document.querySelectorAll('.master-card.order-selected').forEach(c => c.classList.remove('order-selected'));
-    updateFloatButton();
-    document.getElementById('orderModalOverlay').classList.remove('open');
-  });
-  
-  // 복사하기
-  document.getElementById('orderCopyBtn').addEventListener('click', async () => {
-    const text = document.getElementById('orderTextarea').value;
-    const btn = document.getElementById('orderCopyBtn');
+  document.getElementById('orderModalCopyBtn').addEventListener('click', async () => {
+    const text = document.getElementById('orderModalTextarea').value;
+    const btn = document.getElementById('orderModalCopyBtn');
     
     let success = false;
     try {
       await navigator.clipboard.writeText(text);
       success = true;
     } catch (err) {
-      // 폴백: textarea select & execCommand
-      const ta = document.getElementById('orderTextarea');
+      const ta = document.getElementById('orderModalTextarea');
       ta.removeAttribute('readonly');
       ta.select();
       ta.setSelectionRange(0, 99999);
-      try {
-        success = document.execCommand('copy');
-      } catch (e) {}
+      try { success = document.execCommand('copy'); } catch (e) {}
       ta.setAttribute('readonly', 'readonly');
     }
     
@@ -2680,32 +3020,37 @@ render();
     }
   });
   
-  // 자재 마스터 탭이 렌더링될 때마다 체크박스 추가
-  // MutationObserver로 DOM 변화 감지
-  const observer = new MutationObserver(() => {
-    if (document.querySelector('.master-card')) {
-      addCheckboxesToCards();
-    }
-  });
+  // ========== 탭 클릭 감지 ==========
+  function setupTabHandler() {
+    // 탭 클릭 이벤트 가로채기
+    document.addEventListener('click', (e) => {
+      const tab = e.target.closest('[data-tab]');
+      if (!tab) return;
+      
+      // 다른 탭들 active 해제
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      
+      if (tab.dataset.tab === 'order') {
+        e.stopImmediatePropagation();
+        renderToBody();
+      }
+    }, true); // capture phase
+  }
   
-  // 본문 영역 감시
-  function startObserver() {
-    const target = document.getElementById('bodyContent') || document.body;
-    observer.observe(target, {
-      childList: true,
-      subtree: true
-    });
-    addCheckboxesToCards(); // 초기 실행
+  // ========== 초기화 ==========
+  function init() {
+    loadState();
+    setupTabHandler();
+    attachEvents();
   }
   
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startObserver);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    startObserver();
+    init();
   }
 })();
 </script>
-<!-- ========== 발주서 기능 끝 ========== -->
-
-
+<!-- ========== 자재 발주서 탭 기능 끝 ========== -->
 </body></html>
