@@ -84,6 +84,18 @@
     font-size: 14px;
     transition: border-color 0.15s;
   }
+  .rate-apply {
+    padding: 6px 14px;
+    border-radius: 4px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 13px;
+    transition: background 0.15s, opacity 0.15s;
+    white-space: nowrap;
+  }
+  .rate-apply:hover { background: var(--accent-strong); }
+  .rate-apply.saved { background: #5a8a5a; }
 
   /* Tabs */
   .tabs-wrap { padding: 24px 32px 0; }
@@ -930,6 +942,7 @@
       <label>EUR 환율 (€ → ₩)</label>
       <input type="number" id="exchangeRate" class="rate-input" value="1741">
       <span style="font-size:12px;color:var(--muted)">₩</span>
+      <button type="button" id="rateApply" class="rate-apply">반영</button>
     </div>
   </div>
 </header>
@@ -2287,11 +2300,46 @@ function doCalc(type) {
   render();
 }
 
-// Exchange rate change
-document.getElementById('exchangeRate').oninput = (e) => {
-  state.exchangeRate = Number(e.target.value) || 0;
+// Exchange rate: 저장된 값 불러오기 + [반영] 버튼으로만 적용
+const RATE_STORAGE_KEY = 'winkhaus_exchange_rate_v1';
+const rateInput = document.getElementById('exchangeRate');
+const rateApplyBtn = document.getElementById('rateApply');
+
+// 페이지 로드 시 저장된 환율이 있으면 복원
+(function loadSavedRate() {
+  try {
+    const saved = localStorage.getItem(RATE_STORAGE_KEY);
+    if (saved !== null && Number(saved) > 0) {
+      state.exchangeRate = Number(saved);
+      rateInput.value = saved;
+    }
+  } catch (err) { /* localStorage 불가 환경 무시 */ }
+})();
+
+function applyRate() {
+  const val = Number(rateInput.value);
+  if (!val || val <= 0) {
+    rateInput.focus();
+    return;
+  }
+  state.exchangeRate = val;
+  try { localStorage.setItem(RATE_STORAGE_KEY, String(val)); } catch (err) {}
   render();
-};
+  // 버튼에 잠시 "저장됨" 피드백 표시
+  rateApplyBtn.textContent = '✓ 반영됨';
+  rateApplyBtn.classList.add('saved');
+  clearTimeout(rateApplyBtn._t);
+  rateApplyBtn._t = setTimeout(() => {
+    rateApplyBtn.textContent = '반영';
+    rateApplyBtn.classList.remove('saved');
+  }, 1500);
+}
+
+rateApplyBtn.onclick = applyRate;
+// Enter 키로도 반영 가능
+rateInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') applyRate();
+});
 
 // Lightbox close handlers
 document.getElementById('lightboxClose').onclick = closeLightbox;
